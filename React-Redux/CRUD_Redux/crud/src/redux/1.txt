@@ -1,0 +1,204 @@
+import { configureStore } from "@reduxjs/toolkit";
+import userReducer from "../redux/userSlice"; 
+export const store = configureStore({
+    reducer: {
+        users: userReducer, 
+    },
+});
+store.js file
+
+import { createSlice } from "@reduxjs/toolkit";
+
+const initialState = {
+    users: [],
+};
+
+const userSlice = createSlice ({
+    name: "users",
+    initialState,
+    reducers: {
+        addUser: (state, action) => {
+            state.users.push({
+                id: Date.now(),
+                ...action.payload
+            })
+        },
+
+        updateUser: (state, action) => {
+            const {id, userName, userAge, userEmail} = action.payload;
+            const user = state.users.find((user)=> user.id === id);
+
+            if(user) {
+                user.userName = userName;
+                user.userAge = userAge;
+                user.userEmail = userEmail;
+            }
+        },
+
+        deleteUser: (state, action) => {
+            state.users = state.users.filter((user)=> user.id !== action.payload);
+        }
+    }
+})
+
+export const { addUser, updateUser, deleteUser } = userSlice.actions;
+export default userSlice.reducer;
+
+userSlice.js file
+
+import React from 'react'
+import { useState } from 'react'
+import { useDispatch } from 'react-redux';
+import { addUser } from '../redux/userSlice';
+import './Form.css'
+
+const UserForm = () => {
+    const [userName, setUserName] = useState('');
+    const [userAge, setUserAge] = useState('');
+    const [userEmail, setUserEmail] = useState('');
+    const dispatch = useDispatch()
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!userName || !userAge || !userEmail) return;
+        dispatch(addUser({ userName, userAge, userEmail }));
+        setUserName('');
+        setUserAge('');
+        setUserEmail('');
+    }
+
+  return (
+    <>
+        <div className="form-container">
+            <h2>Add User</h2>
+            <input type="text" placeholder='User Name' value={userName} onChange={(e)=>setUserName(e.target.value)}/>
+            <input type="number" placeholder='User Age' value={userAge} onChange={(e)=>setUserAge(e.target.value)}/>
+            <input type="email" placeholder='User Email' value={userEmail} onChange={(e)=>setUserEmail(e.target.value)}/>
+            <button onSubmit={handleSubmit}>Add User</button>
+        </div>
+    </>
+  )
+}
+
+export default UserForm
+
+import React, { useState } from "react";
+import { useDispatch } from "react-redux";
+import { updateUser, deleteUser } from "../redux/userSlice";
+
+const UserItem = ({ user, index }) => {
+  const dispatch = useDispatch();
+
+  // Ensure user exists before setting state
+  const [userName, setUserName] = useState(user?.userName || "");
+  const [userAge, setUserAge] = useState(user?.userAge || "");
+  const [userEmail, setUserEmail] = useState(user?.userEmail || "");
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleUpdate = () => {
+    dispatch(updateUser({ id: user.id, userName, userAge, userEmail }));
+    setIsEditing(false);
+  };
+
+  return (
+    <tr>
+      <td>{index + 1}</td>
+      <td>
+        {isEditing ? (
+          <input value={userName} onChange={(e) => setUserName(e.target.value)} />
+        ) : (
+          user.userName
+        )}
+      </td>
+      <td>
+        {isEditing ? (
+          <input type="number" value={userAge} onChange={(e) => setUserAge(e.target.value)} />
+        ) : (
+          user.userAge
+        )}
+      </td>
+      <td>
+        {isEditing ? (
+          <input type="email" value={userEmail} onChange={(e) => setUserEmail(e.target.value)} />
+        ) : (
+          user.userEmail
+        )}
+      </td>
+      <td>
+        {isEditing ? (
+          <button onClick={handleUpdate}>Save</button>
+        ) : (
+          <button onClick={() => setIsEditing(true)}>Edit</button>
+        )}
+        <button onClick={() => dispatch(deleteUser(user.id))}>Delete</button>
+      </td>
+    </tr>
+  );
+};
+
+export default UserItem;
+
+import React from "react";
+import { useSelector } from "react-redux";
+import UserItem from "./UserItem";
+
+const UserList = () => {
+  const users = useSelector((state) => state.users.users);
+
+  return (
+    <>
+      <h2>User List</h2>
+      {users.length === 0 ? (<p>No User Added</p>) : (
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Email</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {users.map((user, index)=>(
+                    <UserItem key={user.id} index={index} user={user}/>
+                ))}
+            </tbody>
+        </table>
+    )}
+    </>
+  );
+};
+
+export default UserList;
+
+import React from "react";
+import UserForm from "./components/UserForm";
+import UserList from "./components/UserList";
+import UserItem from "./components/UserItem";
+
+const App = () => {
+  return (
+      <div className="app-container">
+        <h1>CRUD App with Redux Toolkit</h1>
+        <UserForm />
+        <UserList />
+        <UserItem />
+      </div>
+  );
+};
+
+export default App;
+
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.jsx'
+import { Provider } from 'react-redux'
+import { store } from './redux/store.js'
+
+createRoot(document.getElementById('root')).render(
+  <Provider store={store}>
+    <App />
+  </Provider>
+)
